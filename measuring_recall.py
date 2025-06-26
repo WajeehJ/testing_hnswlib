@@ -90,7 +90,7 @@ for num_threads in num_threads_list:
         end = time.time()
         elapsed = end - start
 
-        recall = np.mean([gt[0] in res for gt, res in zip(ground_truth, hnsw_labels)])
+        recall = np.mean([gt[0] in res[:10] for gt, res in zip(ground_truth, hnsw_labels)])
         qps = len(queries) / elapsed
 
         # correct = 0
