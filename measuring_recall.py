@@ -63,11 +63,11 @@ ef_values = list(range(10, 311, 30))
 num_threads_list = [1, 4, 8, 16]
 
 # --- Ground truth via Brute-Force ---
-# print("Building Brute-Force index for ground-truth...")
-# bf_index = hnswlib.Index(space='l2', dim=dim)
-# bf_index.init_index(max_elements=num_elements)
-# bf_index.add_items(data)
-# bf_labels, distances_bf = bf_index.knn_query(query_data, k=k)
+print("Building Brute-Force index for ground-truth...")
+bf_index = hnswlib.Index(space='l2', dim=dim)
+bf_index.init_index(max_elements=len(base))
+bf_index.add_items(base)
+bf_labels, distances_bf = bf_index.knn_query(queries, k=k)
 
 # ---------- Benchmark ----------
 for num_threads in num_threads_list:
@@ -90,19 +90,30 @@ for num_threads in num_threads_list:
         end = time.time()
         elapsed = end - start
 
-        recall = np.mean([gt[0] in res[:10] for gt, res in zip(ground_truth, hnsw_labels)])
+        recall_at_k = np.mean([
+    len(set(gt[:k]).intersection(set(res[:k]))) / k
+    for gt, res in zip(ground_truth, hnsw_labels)
+])
+
         qps = len(queries) / elapsed
 
         # correct = 0
-        # for i in range(num_queries):
+        # for i in range(len(queries)):
         #     for label in hnsw_labels[i]:
         #         for correct_label in bf_labels[i]:
         #             if label == correct_label:
         #                 correct += 1
         #                 break
 
-        # recall = float(correct)/(k*num_queries)
+        # recall = float(correct)/(k*len(queries))
+
+        recall = np.mean([
+    any(label in bf for label in approx[:k])
+    for bf, approx in zip(bf_labels, hnsw_labels)
+])
 
 
 
-        print(f"ef={ef:3d} | Recall@{k}={recall:.4f} | QPS={qps:.2f}")
+        print(f"ef={ef:3d} | Recall@{k}={recall_at_k:.4f} | QPS={qps:.2f}")
+        print(f"Recall@{k} calculated by bruteforce = {recall:.4f}")
+
